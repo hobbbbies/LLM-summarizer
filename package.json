@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.79"
+  },
+  "name": "llm-summarizer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "webpack.config.js",
+  "devDependencies": {
+    "@babel/preset-env": "^7.28.0",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "html-webpack-plugin": "^5.6.3",
+    "webpack": "^5.100.1",
+    "webpack-cli": "^6.0.1"
+  },
+  "scripts": {
+    "build": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hobbbbies/LLM-summarizer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hobbbbies/LLM-summarizer/issues"
+  },
+  "homepage": "https://github.com/hobbbbies/LLM-summarizer#readme"
+}
