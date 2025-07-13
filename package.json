@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.79"
+    "@mlc-ai/web-llm": "^0.2.79",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "name": "llm-summarizer",
   "version": "1.0.0",
@@ -8,6 +10,7 @@
   "main": "webpack.config.js",
   "devDependencies": {
     "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
     "babel-loader": "^10.0.0",
     "copy-webpack-plugin": "^13.0.0",
     "html-webpack-plugin": "^5.6.3",
