@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { MLCEngineInterface, CreateExtensionServiceWorkerMLCEngine } from '@mlc-ai/web-llm';
 import Loading from './Loading.jsx';
 import Error from './Error.jsx';
+import '../styles.css';
 
 export default function App() {
     const [on, setOn] = useState('OFF');
@@ -106,4 +107,4 @@ export default function App() {
             </label>
         </div>
     )
-}
+}   
