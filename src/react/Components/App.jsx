@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { CreateMLCEngine } from '@mlc-ai/web-llm';
+import { useState, useEffect, useRef } from 'react'
+import { MLCEngineInterface, CreateExtensionServiceWorkerMLCEngine } from '@mlc-ai/web-llm';
 import Loading from './Loading.jsx';
 import Error from './Error.jsx';
 
@@ -8,6 +8,20 @@ export default function App() {
     const [context, setContext] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [selectedModel, setSelectedModel] = useState("Hermes-3-Llama-3.2-3B-q4f32_1-MLC");
+    const engineRef = useRef(null);
+
+    const initProgressCallback = (initProgress) => {
+        console.log(initProgress);
+    }
+
+    const initEngine = async () => {
+         // Grabs from service worker
+        engineRef.current = await CreateExtensionServiceWorkerMLCEngine(
+            selectedModel,
+            { initProgressCallback }, // engineConfig
+        );
+    }
 
     const switchOn = () => {
         const newState = on === 'OFF' ? 'ON' : 'OFF';;
@@ -29,27 +43,19 @@ export default function App() {
             });
         });
     }
-
-    const initProgressCallback = (initProgress) => {
-        console.log(initProgress);
-    }
     
     // Creates instance of webllm engine
-    const queryModel = async (context) => {
+    const queryModel = async () => {
+        console.log('querying model');
         setLoading(true);
-        const selectedModel = "Hermes-3-Llama-3.2-3B-q4f32_1-MLC";
-        const engine = await CreateMLCEngine(
-            selectedModel,
-            { initProgressCallback: initProgressCallback }, // engineConfig
-        );
-
+        console.log("Query model engine: ", engineRef.current);
         const messages = [
             { role: "system", content: "You are a helpful AI assistant." },
             { role: "user", content: "Using the following webpage innerText, create a detailed summary its its contents and ideas. CONTEXT: " + context },
         ];
 
         console.log('messages: ', messages);
-        const reply = await engine.chat.completions.create({
+        const reply = await engineRef.current.chat.completions.create({
             messages,
         });
         setLoading(false);
@@ -58,7 +64,10 @@ export default function App() {
     }
 
     useEffect(() => {
+        initEngine();
+        console.log('fetching context');
         fetchPageContents().then(setContext).catch((error) => setError(error));
+        console.log('context fetched');
     }, []);
     
     useEffect(() => {
@@ -68,9 +77,16 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        console.log('context: ', context);
-        if (on === 'ON' && context.length > 0) {
-            queryModel(context);
+        console.log('context inside useEffect: ', context, 'on: ', on);
+        if (on === 'ON' && context.length > 0 && engineRef.current) {
+            (async () => {
+                try {
+                    console.log('activating');
+                    await queryModel();
+                } catch (err) {
+                    console.error('queryModel error:', err);
+                }
+            })();
         }
     }, [on, context]);
 
@@ -83,7 +99,7 @@ export default function App() {
         <div className="popup">
             <label>
             Activate AI
-            <input id="enabled" type="checkbox" checked={on === 'ON'} onChange={(switchOn)}/>
+            <input id="enabled" type="checkbox" checked={on === 'ON'} onChange={switchOn}/>
             <span class="slider round"></span>
             {loading && <Loading />}
             {error && <Error />}

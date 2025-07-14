@@ -1,1 +1,1 @@
-console.log("content script loaded"),chrome.runtime.onConnect.addListener(function(n){n.onMessage.addListener(function(e){n.postMessage({contents:document.body.innerText})})});
+console.log("content script loaded"),chrome.runtime.onConnect.addListener(function(e){e.onMessage.addListener(function(n){e.postMessage({contents:document.body.innerText}),console.log("content script complete")})});

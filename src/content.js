@@ -4,5 +4,6 @@ console.log('content script loaded');
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((msg) => {
     port.postMessage({ contents: document.body.innerText });
+    console.log('content script complete');
   });
 });
