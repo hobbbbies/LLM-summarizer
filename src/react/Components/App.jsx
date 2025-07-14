@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { MLCEngineInterface, CreateExtensionServiceWorkerMLCEngine } from '@mlc-ai/web-llm';
 import Loading from './Loading.jsx';
 import Error from './Error.jsx';
@@ -9,7 +9,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [selectedModel, setSelectedModel] = useState("Hermes-3-Llama-3.2-3B-q4f32_1-MLC");
-    const engineRef = useRef(null);
+    const [engine, setEngine] = useState(null);
 
     const initProgressCallback = (initProgress) => {
         console.log(initProgress);
@@ -17,10 +17,11 @@ export default function App() {
 
     const initEngine = async () => {
          // Grabs from service worker
-        engineRef.current = await CreateExtensionServiceWorkerMLCEngine(
+        const serviceEngine = await CreateExtensionServiceWorkerMLCEngine(
             selectedModel,
             { initProgressCallback }, // engineConfig
         );
+        setEngine(serviceEngine);
     }
 
     const switchOn = () => {
@@ -48,14 +49,14 @@ export default function App() {
     const queryModel = async () => {
         console.log('querying model');
         setLoading(true);
-        console.log("Query model engine: ", engineRef.current);
+        console.log("Query model engine: ", engine);
         const messages = [
             { role: "system", content: "You are a helpful AI assistant." },
             { role: "user", content: "Using the following webpage innerText, create a detailed summary its its contents and ideas. CONTEXT: " + context },
         ];
 
         console.log('messages: ', messages);
-        const reply = await engineRef.current.chat.completions.create({
+        const reply = await engine.chat.completions.create({
             messages,
         });
         setLoading(false);
@@ -78,7 +79,7 @@ export default function App() {
 
     useEffect(() => {
         console.log('context inside useEffect: ', context, 'on: ', on);
-        if (on === 'ON' && context.length > 0 && engineRef.current) {
+        if (on === 'ON' && context.length > 0 && engine) {
             (async () => {
                 try {
                     console.log('activating');
@@ -88,7 +89,7 @@ export default function App() {
                 }
             })();
         }
-    }, [on, context]);
+    }, [on, context, engine]);
 
     useEffect(() => {
         chrome.action.setBadgeText({ text: on });
@@ -100,7 +101,6 @@ export default function App() {
             <label>
             Activate AI
             <input id="enabled" type="checkbox" checked={on === 'ON'} onChange={switchOn}/>
-            <span class="slider round"></span>
             {loading && <Loading />}
             {error && <Error />}
             </label>
