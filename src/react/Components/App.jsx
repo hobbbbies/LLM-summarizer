@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { MLCEngineInterface, CreateExtensionServiceWorkerMLCEngine } from '@mlc-ai/web-llm';
 import Loading from './Loading.jsx';
 import Error from './Error.jsx';
+import Reply from './Reply.jsx';
 import '../styles.css';
 
 // This is the main App component for the LLM Summarizer extension popup
@@ -10,6 +11,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [selectedModel, setSelectedModel] = useState("Hermes-3-Llama-3.2-3B-q4f32_1-MLC");
+    const [chatReply, setChatReply] = useState("");
 
     // Callback for engine initialization progress
     const initProgressCallback = (initProgress) => {
@@ -28,8 +30,8 @@ export default function App() {
                 console.log("Cancelling engine init as there is already an instance of it being cached");
                 return;
             }
-            console.log('creating engine');
             try{ 
+                console.log('creating engine');
                 const serviceEngine = await CreateExtensionServiceWorkerMLCEngine(
                     selectedModel,
                     { initProgressCallback },
@@ -72,6 +74,8 @@ export default function App() {
             messages,
         });
         chrome.storage.local.set({ reply: reply, context: context });
+        setChatReply(reply.choices[0].message.content);
+        console.log('setting: ', reply.choices[0].message.content);
         setLoading(false);
         console.log(reply.choices[0].message);
         console.log(reply.usage);
@@ -83,11 +87,14 @@ export default function App() {
     }, []);
     
     useEffect(() => {
+        if (!context || !engine || loading) return;
         console.log("context.lenght: ", context.length, "engine?: ", !!engine, "loading?", loading);
         if (context.length > 0 && engine && !loading) {
             chrome.storage.local.get(['context', 'reply'], (data) => {
                 if (data.context === context && data.reply) {
                     // Cached reply exists
+                    setChatReply(data.reply.choices[0].message.content);
+                    console.log('setting: ', data.reply.choices[0].message.content);
                     console.log(data.reply.choices[0].message);
                     console.log(data.reply.usage);
                 } else {
@@ -104,9 +111,15 @@ export default function App() {
         }
     }, [context, engine]);
 
+    useEffect(() => {
+      console.log('State updated:', chatReply);
+    }, [chatReply]);
+
     return(
         <div className="popup">
             Activate AI
+            {console.log('reply: ', chatReply)}
+            <Reply chatReply={chatReply}/>
             {loading && <Loading />}
             {error && <Error />}
         </div>

@@ -12,9 +12,7 @@ chrome.runtime.onConnect.addListener(function (port) {
   } else {
     handler.setPort(port);
   }
-  port.onMessage.addListener(() => {
-    handler.onmessage.bind(handler);
-  });
+  port.onMessage.addListener(handler.onmessage.bind(handler));
 });
 
 
