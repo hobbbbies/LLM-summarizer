@@ -18,20 +18,33 @@ export default function App() {
 
     // Initialize the engine only once
     const [engine, setEngine] = useState(null);
-    const engineInitStarted = useRef(false);
-    const initEngine = useCallback(async () => {
-        chrome.storage.local.get('engineInit', data => {
-            if (data.engineInit || engineInit.current || engine) return;
-        })
-        engineInitStarted.current = true;
-        chrome.storage.local.set({ engineInit: true });
-        const serviceEngine = await CreateExtensionServiceWorkerMLCEngine(
-            selectedModel,
-            { initProgressCallback },
-        );
-        chrome.storage.local.set({ engineInit: false });
-        setEngine(serviceEngine);
-    })
+    const initEngine = useCallback(() => {
+        // Checks if another engine init was started in a previous instance of a popup
+        chrome.runtime.sendMessage({ type: 'requestEngineInit' }, async response => {
+            console.log("!response.started: ", !response.started);
+            console.log('!response', !response);
+            console.log('engine: ', engine);
+            if (engine || !response || !response.started) {
+                console.log("Cancelling engine init as there is already an instance of it being cached");
+                return;
+            }
+            console.log('creating engine');
+            try{ 
+                const serviceEngine = await CreateExtensionServiceWorkerMLCEngine(
+                    selectedModel,
+                    { initProgressCallback },
+                );
+                console.log('Engine created');
+                setEngine(serviceEngine);
+            } catch (error) {
+                console.error("Error: ", error);
+                setError('Error creating Engine. Try refreshing after a few seconds.');
+            }   finally {
+                console.log('finally block');
+                chrome.runtime.sendMessage({ type: 'engineInitDone' });
+            }
+        });
+    }, [selectedModel]);
 
     // Fetches document.body.innerText from contentScript.js
     const fetchPageContents = () => {
@@ -50,15 +63,11 @@ export default function App() {
     // Creates instance of webllm engine and queries the model
     const queryModel = useCallback(async () => {
         if (!engine) return;
-        console.log('querying model');
         setLoading(true);
-        console.log("Query model engine: ", engine);
         const messages = [
             { role: "system", content: "You are a helpful AI assistant." },
             { role: "user", content: "Using the following webpage innerText, create a detailed summary its its contents and ideas. CONTEXT: " + context },
         ];
-
-        console.log('messages: ', messages);
         const reply = await engine.chat.completions.create({
             messages,
         });
@@ -70,9 +79,7 @@ export default function App() {
 
     useEffect(() => {
         initEngine();
-        console.log('fetching context');
         fetchPageContents().then(setContext).catch((error) => setError(error));
-        console.log('context fetched');
     }, []);
     
     useEffect(() => {
@@ -87,7 +94,6 @@ export default function App() {
                     // No cached reply, query the model
                     (async () => {
                         try {
-                            console.log('activating');
                             await queryModel();
                         } catch (err) {
                             console.error('queryModel error:', err);
