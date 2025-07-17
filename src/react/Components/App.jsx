@@ -119,6 +119,7 @@ export default function App() {
         <div className="popup">
             Activate AI
             {console.log('reply: ', chatReply)}
+            <p>{chatReply}</p>
             <Reply chatReply={chatReply}/>
             {loading && <Loading />}
             {error && <Error />}
