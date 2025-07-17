@@ -24,7 +24,6 @@ export default function App() {
         // Checks if another engine init was started in a previous instance of a popup
         chrome.runtime.sendMessage({ type: 'requestEngineInit' }, async response => {
             console.log("!response.started: ", !response.started);
-            console.log('!response', !response);
             console.log('engine: ', engine);
             if (engine || !response || !response.started) {
                 console.log("Cancelling engine init as there is already an instance of it being cached");
@@ -42,7 +41,6 @@ export default function App() {
                 console.error("Error: ", error);
                 setError('Error creating Engine. Try refreshing after a few seconds.');
             }   finally {
-                console.log('finally block');
                 chrome.runtime.sendMessage({ type: 'engineInitDone' });
             }
         });
@@ -65,7 +63,6 @@ export default function App() {
     // Creates instance of webllm engine and queries the model
     const queryModel = useCallback(async () => {
         if (!engine) return;
-        setLoading(true);
         const messages = [
             { role: "system", content: "You are a helpful AI assistant." },
             { role: "user", content: "Using the following webpage innerText, create a detailed summary its its contents and ideas. CONTEXT: " + context },
@@ -75,8 +72,6 @@ export default function App() {
         });
         chrome.storage.local.set({ reply: reply, context: context });
         setChatReply(reply.choices[0].message.content);
-        console.log('setting: ', reply.choices[0].message.content);
-        setLoading(false);
         console.log(reply.choices[0].message);
         console.log(reply.usage);
     }, [engine, context]);
@@ -87,29 +82,28 @@ export default function App() {
     }, []);
     
     useEffect(() => {
-        if (!context || !engine || loading) return;
-        console.log("context.lenght: ", context.length, "engine?: ", !!engine, "loading?", loading);
-        if (context.length > 0 && engine && !loading) {
-            chrome.storage.local.get(['context', 'reply'], (data) => {
+        if (context.length === 0 || !engine || loading) return;
+
+        setLoading(true);
+        chrome.storage.local.get(['context', 'reply'], async (data) => {
+            try {
                 if (data.context === context && data.reply) {
-                    // Cached reply exists
                     setChatReply(data.reply.choices[0].message.content);
-                    console.log('setting: ', data.reply.choices[0].message.content);
+                    console.log('setting:', data.reply.choices[0].message.content);
                     console.log(data.reply.choices[0].message);
                     console.log(data.reply.usage);
                 } else {
-                    // No cached reply, query the model
-                    (async () => {
-                        try {
-                            await queryModel();
-                        } catch (err) {
-                            console.error('queryModel error:', err);
-                        }
-                    })();
+                    console.log("NO CACHE FOUND - QUERYING MODEL");
+                    await queryModel();
                 }
-            });
-        }
+            } catch (err) {
+                console.error('queryModel error:', err);
+            } finally {
+                setLoading(false);
+            }
+        });
     }, [context, engine]);
+
 
     useEffect(() => {
       console.log('State updated:', chatReply);
